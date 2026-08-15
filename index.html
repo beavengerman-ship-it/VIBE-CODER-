@@ -62,7 +62,7 @@
                 const systemPrompt = `You are an expert front-end web developer. When given user details, output **only** a single, fully self-contained HTML file. Use Tailwind CSS via CDN for styling and include inline JavaScript if interactivity is needed. Do not use markdown backticks around the output, do not include any conversational filler, explanation, or text other than the raw HTML string starting with <!DOCTYPE html>.`;
 
                 const response = await ai.models.generateContent({
-                    model: 'gemini-3.5-flash',
+                    model: 'gemini-2.5-flash',
                     contents: prompt,
                     config: {
                         systemInstruction: systemPrompt,
