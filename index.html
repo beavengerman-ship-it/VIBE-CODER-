@@ -2,41 +2,109 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Website Generator</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: sans-serif; margin: 0; display: flex; height: 100vh; background: #0f172a; color: #f8fafc; }
+        .sidebar { width: 380px; background: #1e293b; padding: 20px; display: flex; flex-direction: column; gap: 15px; border-right: 1px solid #334155; box-sizing: border-box; }
+        textarea, input { width: 100%; background: #0f172a; color: #fff; border: 1px solid #475569; border-radius: 6px; padding: 10px; box-sizing: border-box; }
+        textarea { height: 120px; resize: none; }
+        button { background: #3b82f6; color: white; border: none; padding: 10px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #2563eb; }
+        .workspace { flex: 1; display: flex; flex-direction: column; }
+        .toolbar { padding: 10px 20px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; }
+        iframe { flex: 1; border: none; background: #ffffff; }
+        label { font-size: 0.85rem; color: #94a3b8; font-weight: bold; }
+    </style>
 </head>
-<body class="bg-slate-950 text-white h-screen flex flex-col">
-    <!-- Header Input Form -->
-    <header class="p-4 border-b border-slate-800 flex gap-4 items-center bg-slate-900">
-        <h1 class="font-bold text-xl text-indigo-400">AuraWeb AI</h1>
-        <input id="promptInput" type="text" placeholder="Describe your aesthetic (e.g., minimal brutalist coffee shop)..." 
-               class="flex-1 bg-slate-800 border border-slate-700 px-4 py-2 rounded-lg text-sm focus:outline-none focus:border-indigo-500">
-        <button onclick="generateSite()" class="bg-indigo-600 hover:bg-indigo-500 px-5 py-2 rounded-lg font-medium text-sm transition">
-            Generate Site
-        </button>
-    </header>
+<body>
 
-    <!-- Preview Area -->
-    <main class="flex-1 p-4 bg-slate-950">
-        <iframe id="previewFrame" class="w-full h-full bg-white rounded-xl border border-slate-800"></iframe>
-    </main>
+    <!-- Sidebar controls -->
+    <div class="sidebar">
+        <h2>AI Website Builder</h2>
+        
+        <div>
+            <label for="apiKey">Gemini API Key:</label>
+            <input type="password" id="apiKey" placeholder="Enter your AI Studio API key">
+        </div>
 
-    <script>
-        async function generateSite() {
-            const prompt = document.getElementById('promptInput').value;
-            const iframe = document.getElementById('previewFrame');
+        <div>
+            <label for="userInput">Website Details:</label>
+            <textarea id="userInput" placeholder="e.g., A landing page for a modern cafe named Bean Scene..."></textarea>
+        </div>
+
+        <button onclick="generateWebsite()">Generate Website</button>
+        <button onclick="downloadCode()" style="background: #10b981;">Download HTML File</button>
+    </div>
+
+    <!-- Main Live Workspace -->
+    <div class="workspace">
+        <div class="toolbar">
+            <span id="status" style="font-size: 0.85rem; color: #94a3b8;">Ready</span>
+        </div>
+        <iframe id="previewFrame"></iframe>
+    </div>
+
+    <!-- Import Google Gen AI SDK directly via ESM CDN -->
+    <script type="module">
+        import { GoogleGenAI } from "https://esm.run/@google/genai";
+
+        let generatedHtmlCode = "";
+
+        window.generateWebsite = async function() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const prompt = document.getElementById('userInput').value.trim();
             
-            iframe.srcdoc = "<div style='display:flex;justify-content:center;align-items:center;height:100vh;font-family:sans-serif;'>Generating your aesthetic...</div>";
+            if (!apiKey) return alert("Please enter your Gemini API key!");
+            if (!prompt) return alert("Please enter website details!");
 
-            const res = await fetch('/api/generate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ prompt })
-            });
+            document.getElementById('status').innerText = "Generating website with AI...";
+
+            try {
+                // Initialize Gemini SDK on the client side
+                const ai = new GoogleGenAI({ apiKey: apiKey, dangerouslyAllowBrowser: true });
+
+                const systemPrompt = `You are an expert front-end web developer. When given user details, output **only** a single, fully self-contained HTML file. Use Tailwind CSS via CDN for styling and include inline JavaScript if interactivity is needed. Do not use markdown backticks around the output, do not include any conversational filler, explanation, or text other than the raw HTML string starting with <!DOCTYPE html>.`;
+
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-flash',
+                    contents: prompt,
+                    config: {
+                        systemInstruction: systemPrompt,
+                        temperature: 0.7,
+                    }
+                });
+
+                let htmlCode = response.text;
+                // Clean markdown ticks just in case
+                htmlCode = htmlCode.replace(/^```html\s*/i, '').replace(/^```\s*/i, '').replace(/\s*```$/, '');
+
+                generatedHtmlCode = htmlCode;
+
+                // Render live inside the iframe
+                document.getElementById('previewFrame').srcdoc = generatedHtmlCode;
+                document.getElementById('status').innerText = "Generated successfully!";
+
+            } catch (error) {
+                console.error(error);
+                document.getElementById('status').innerText = "Error generating code.";
+                alert("Failed to generate. Check your console or API key.");
+            }
+        };
+
+        window.downloadCode = function() {
+            if (!generatedHtmlCode) return alert("No website generated yet!");
             
-            const data = await res.json();
-            iframe.srcdoc = data.html; // Injects the generated HTML directly into the sandbox iframe
-        }
+            const blob = new Blob([generatedHtmlCode], { type: 'text/html' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'index.html';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
     </script>
 </body>
 </html>
