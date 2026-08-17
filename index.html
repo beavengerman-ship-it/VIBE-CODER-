@@ -37,7 +37,7 @@
     </div>
 
     <script>
-        // Hardcoded API key or token
+        // Replace with your actual Google AI Studio API key (starts with AIza...)
         const apiKey = "AQ.Ab8RN6LIAPLy3HI699BRMuDOWvFaH9OHC8klksDSQh39xcpAKA";
         let generatedHtmlCode = "";
 
@@ -45,6 +45,7 @@
             const prompt = document.getElementById('userInput').value.trim();
                         
             if (!prompt) return alert("Please enter website details!");
+            if (apiKey.startsWith("AIzaSyYOUR")) return alert("Please replace the placeholder with your actual Google AI Studio API key starting with AIza...");
 
             document.getElementById('status').innerText = "Generating website with AI...";
             try {
